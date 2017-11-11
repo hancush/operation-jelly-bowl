@@ -23,6 +23,7 @@ class Vinny(Scraper):
         for product in products:
             name_element, = product.xpath('h2/a')
             name = name_element.text
+            detail_link = self.BASE_URL + name_element.attrib['href']
 
             description_element, = product.xpath('div[@class="wdcproductdesc"]')
             description = description_element.text.strip()
@@ -55,7 +56,7 @@ class Vinny(Scraper):
                 price_cents = price_element.find('span[@class="supercents"]')
                 price = '.'.join([price_dollars.text, price_cents.text])
 
-            wines.append([name, description, scores, review, price])
+            wines.append([name, description, scores, review, price, detail_link])
 
         return wines
 
@@ -80,7 +81,7 @@ if __name__ == '__main__':
 
     writer = csv.writer(sys.stdout)
     writer.writerow(['newsletter', 'wine_name', 'vendor_description',
-                     'score', 'review', 'price'])
+                     'score', 'review', 'price', 'detail_link'])
 
     for newsletter, wines in vin.scrape():
         for wine in wines:
