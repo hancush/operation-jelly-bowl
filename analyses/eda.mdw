@@ -1,0 +1,60 @@
+<<>>=
+import pandas as pd
+@
+
+<<>>=
+data = pd.read_csv('data/newsletter_wines.csv')
+data.head(8)
+@
+
+<< label = 'price format' >>=
+data['price'] = data.price.apply(lambda x: x.replace('Unlisted', '0')).astype(float)
+@
+
+<< label = 'date format' >>=
+from datetime import datetime
+data['newsletter_date'] = data.newsletter.apply(lambda x: datetime.strptime(' '.join(x.split(' ')[:-1]), '%B %Y'))
+@
+
+<< label = 'highest score' >>=
+import re
+
+# Fill missing scores with 0
+data.score = data.score.apply(lambda x: x.replace('[]', "['0']")\
+                                         .replace("['']", "['0']"))
+
+# Extract the highest score
+data['highest_score'] = data.score.apply(lambda x: max(re.findall('\d+', x))).astype(int)
+@
+
+<< label = 'averages' >>=
+data.groupby('newsletter_date').mean()
+@
+
+<< label = 'varietals' >>=
+import requests
+from lxml import etree
+
+# Grab a list of varietals from the interwebs
+rv = requests.get('https://www.wines.com/wine-varietals/')
+tree = etree.HTML(rv.text)
+
+# Join all the names together and find the occurrences of varietals
+varietals = '|'.join([el.text.lower() for el in tree.xpath('//h5')])
+varietals += '|syrah|brut|prosecco|red'
+wines = ' '.join(data['wine_name'].str.lower())
+
+# Find the most common 15
+from collections import Counter
+Counter([v.group(0) for v in re.finditer(varietals, wines)]).most_common(15)
+@
+
+<< label = 'parse-varietal' >>=
+data['varietal'] = data.wine_name.apply(lambda x: re.search(varietals, x.lower()))
+data['varietal'] = data.varietal.apply(lambda x : x.group(0) if x else None)
+@
+
+<< label = 'parse-year' >>=
+data['year'] = data.wine_name.apply(lambda x: re.search('\d{4}', x))
+data['year'] = data.year.apply(lambda x : x.group(0) if x else None)
+@
